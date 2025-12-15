@@ -1,33 +1,47 @@
 import React from 'react';
-import { Eye, TrendingUp, Hash } from 'lucide-react';
+import { Eye, TrendingUp, Hash, Loader2 } from 'lucide-react';
+import { useYouTubeData } from '../hooks/useYouTubeData';
+import { calculateMetrics } from '../utils/analysis';
 
 interface MetricsCardsProps {
   category: string;
 }
 
 export function MetricsCards({ category }: MetricsCardsProps) {
+  const { data, loading, error } = useYouTubeData({
+    category,
+    timeRange: '30days',
+    maxResults: 50,
+    enabled: true,
+  });
+
+  const metricsResult = calculateMetrics(data);
+  const avgViews = metricsResult.avgViews;
+  const trendingTopics = metricsResult.trendingTopics;
+  const recommendedHashtags = metricsResult.recommendedHashtags;
+
   const metrics = [
     {
       label: '평균 조회수',
-      value: '45.2K',
-      change: '+12.5%',
-      trend: 'up',
+      value: avgViews,
+      change: loading ? '로딩 중...' : data ? 'Updated' : '데이터 없음',
+      trend: 'up' as const,
       icon: Eye,
       color: 'blue'
     },
     {
       label: '트렌딩 주제',
-      value: '8개',
-      change: '+3 this week',
-      trend: 'up',
+      value: `${trendingTopics}개`,
+      change: loading ? '로딩 중...' : 'Updated',
+      trend: 'up' as const,
       icon: TrendingUp,
       color: 'green'
     },
     {
       label: '추천 해시태그',
-      value: '15개',
-      change: 'Updated',
-      trend: 'neutral',
+      value: `${recommendedHashtags}개`,
+      change: loading ? '로딩 중...' : 'Updated',
+      trend: 'neutral' as const,
       icon: Hash,
       color: 'purple'
     }
@@ -38,6 +52,33 @@ export function MetricsCards({ category }: MetricsCardsProps) {
     green: 'bg-green-50 text-green-600',
     purple: 'bg-purple-50 text-purple-600'
   };
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="size-5 animate-spin" style={{ color: '#FF0000' }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div className="col-span-3 bg-white rounded-xl shadow-sm border border-red-200 p-5">
+          <div className="text-center text-red-600">
+            <p className="mb-2">데이터를 불러오는 중 오류가 발생했습니다.</p>
+            <p className="text-sm text-gray-500">{error.message}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
